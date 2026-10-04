@@ -1405,19 +1405,21 @@ const pushSlotSub = x => { const c = pushCfg(x.id); return `${daysLabel(c.days)}
 const pausedTo = () => push.pause && push.pause >= today() ? push.pause : '';
 
 // The test button: show a local preview right away, then ask the server for a real one (arrives within a minute).
+// Same layout as the server's (dev/push-tick.ts): the point in the title, details in the body.
 function pushSample() {
   const t = today(), x = activeSlots().find(y => pushCfg(y.id).on && slotItems(t, y.id).some(i => !i.ok));
-  if (!x) return '今天的都做完了';
+  if (!x) return { title: '今天的都做完了', body: '這是預覽，通知會長這樣' };
   const left = slotItems(t, x.id).filter(i => !i.ok);
-  return push.names ? `${x.name}：還差 ${left.slice(0, 3).map(i => i.p.name).join('、')}${left.length > 3 ? ` 等 ${left.length} 項` : ''}`
-    : `${x.name}還有 ${left.length} 項沒打勾`;
+  return { title: `${x.name}還差 ${left.length} 項`,
+    body: push.names ? `${left.slice(0, 3).map(i => i.p.name).join('、')}${left.length > 3 ? ` 等 ${left.length} 項` : ''}` : '點一下打勾' };
 }
 async function pushTest() {
   if (!pushOn()) return;
   try {
     // iOS always adds "from <home screen name>" under the title of a web app's notification, whatever the title is.
     const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification(appTitle(), { body: pushSample(), tag: 'preview', icon: 'images/icon-192.png', badge: 'images/icon-192.png', data: { url: './?from=push&go=today' } });
+    const { title, body } = pushSample();
+    await reg.showNotification(title, { body, tag: 'preview', icon: 'images/icon-192.png', badge: 'images/icon-192.png', data: { url: './?from=push&go=today' } });
   } catch (e) {}
   let found = false;
   if (await pushSync()) {
