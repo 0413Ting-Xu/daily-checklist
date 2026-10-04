@@ -1415,11 +1415,9 @@ function pushSample() {
 async function pushTest() {
   if (!pushOn()) return;
   try {
-    // Trying out how iOS lays the title out: A = the app's own name, B = the name it has on the home screen, C = no title.
-    const reg = await navigator.serviceWorker.ready, body = pushSample(), opt = { icon: 'images/icon-192.png', badge: 'images/icon-192.png', data: { url: './?from=push&go=today' } };
-    await reg.showNotification(appTitle(), { ...opt, body: `A・${body}`, tag: 'preview-a' });
-    await reg.showNotification(DEFAULT_TITLE, { ...opt, body: `B・${body}`, tag: 'preview-b' });
-    await reg.showNotification('', { ...opt, body: `C・${body}`, tag: 'preview-c' });
+    // iOS always adds "from <home screen name>" under the title of a web app's notification, whatever the title is.
+    const reg = await navigator.serviceWorker.ready;
+    await reg.showNotification(appTitle(), { body: pushSample(), tag: 'preview', icon: 'images/icon-192.png', badge: 'images/icon-192.png', data: { url: './?from=push&go=today' } });
   } catch (e) {}
   let found = false;
   if (await pushSync()) {
