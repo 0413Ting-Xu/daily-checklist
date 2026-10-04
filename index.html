@@ -48,6 +48,7 @@ img{display:block}
 .tone-blue{--c1:var(--blue-100);--c2:var(--blue-200);--c3:var(--blue-300);--c4:var(--blue-400);--c6:var(--blue-600);--tint:var(--blue-50)}
 .tone-pink{--c1:var(--pink-100);--c2:var(--pink-200);--c3:var(--pink-300);--c4:var(--pink-400);--c6:var(--pink-600);--tint:var(--pink-50)}
 .tone-butter{--c1:#FCF1D2;--c2:#F8E4AE;--c3:#F4D88F;--c4:#E5BC5C;--c6:#A97F1F;--tint:#FEF9EC}
+.tone-mint{--c1:#E2F2E5;--c2:#CBE8D1;--c3:#A9D8B4;--c4:#7FC18F;--c6:#3F8A52;--tint:#F3FAF4}
 .tone-mint{--c1:#DFF3EA;--c2:#C6E9D9;--c3:#A9DCC5;--c4:#78C2A2;--c6:#3E8C6A;--tint:#F2FAF6}
 .tone-lilac{--c1:#EEE9FB;--c2:#DDD3F6;--c3:#C9BAF0;--c4:#A994E3;--c6:#6E57B5;--tint:#F7F4FD}
 
@@ -441,8 +442,8 @@ main{container:main / inline-size;min-width:0}
 .set-select{font:inherit;font-size:16px;color:var(--ink-2);border:0;background:#fff;border-radius:12px;padding:8px 10px;box-shadow:0 0 0 1.5px var(--line)}
 .dot.lg{width:14px;height:14px;margin:0 4px}
 .btn.full{width:100%;justify-content:center}
-.looks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.look{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 0 10px;border-radius:18px;background:var(--soft);color:var(--ink-2);font-size:14px;transition:background .2s}
+.looks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.look{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 0 10px;border-radius:18px;background:var(--soft);color:var(--ink-2);font-size:13.5px;white-space:nowrap;transition:background .2s}
 .look .avatar{width:52px;height:52px;box-shadow:0 0 0 3px #fff}
 .look.on{background:var(--c1);color:var(--c6)}
 .look.on .avatar{box-shadow:0 0 0 3px var(--c4)}
@@ -900,9 +901,20 @@ const PRESETS = [['一三五', [1, 3, 5]], ['二四六', [2, 4, 6]], ['平日', 
 const IMG = {
   hachi: 'images/hachiware.webp', chii: 'images/chiikawa.webp', usagi: 'images/usagi.jpg', duo: 'images/chiikawa-usagi.jpg',
   faceDone: 'images/face-hachiware.png', faceRest: 'images/face-chiikawa.png',
+  chiiFrown: 'images/av-chii-frown.jpg', chiiCry: 'images/av-chii-cry.jpg', hachiFlower: 'images/av-hachi-flower.jpg',
+  momo: 'images/av-momo.jpg', shisa: 'images/av-shisa.jpg', shisaSnack: 'images/av-shisa-snack.jpg', shifu: 'images/av-shifu.jpg',
+  beetle: 'images/av-beetle.jpg', goblin: 'images/av-goblin.jpg', ode: 'images/av-ode.jpg',
 };
 // Each routine picks a character; its color and icon come with it.
-const LOOKS = { usagi: { name: '烏薩奇', tone: 'butter', icon: 'sun' }, chii: { name: '吉伊', tone: 'pink', icon: 'moon' }, hachi: { name: '小八', tone: 'blue', icon: 'bed' } };
+// New characters share the color (and icon) of the one they look most like.
+const LOOKS = {
+  usagi: { name: '烏薩奇', tone: 'butter', icon: 'sun' }, chii: { name: '吉伊', tone: 'pink', icon: 'moon' }, hachi: { name: '小八', tone: 'blue', icon: 'bed' },
+  chiiFrown: { name: '皺眉吉伊', tone: 'pink', icon: 'moon' }, chiiCry: { name: '哭哭吉伊', tone: 'pink', icon: 'moon' },
+  hachiFlower: { name: '花花小八', tone: 'blue', icon: 'bed' }, momo: { name: '小桃', tone: 'pink', icon: 'moon' },
+  shisa: { name: '獅薩', tone: 'butter', icon: 'sun' }, shisaSnack: { name: '點心獅薩', tone: 'butter', icon: 'sun' },
+  shifu: { name: '師父', tone: 'butter', icon: 'sun' }, beetle: { name: '小甲蟲', tone: 'butter', icon: 'sun' },
+  goblin: { name: '哥布林', tone: 'mint', icon: 'noon' }, ode: { name: '奧德', tone: 'butter', icon: 'sun' },
+};
 const DAY_STARTS = [0, 1, 2, 3, 4, 5, 6];
 const TABS = [['today', '今天', 'star'], ['week', '一週', 'week'], ['products', '清單', 'bottle'], ['history', '紀錄', 'book'], ['settings', '設定', 'gear']];
 
@@ -971,7 +983,7 @@ const longDate = s => { const d = parse(s); return `${d.getMonth() + 1}月${d.ge
 const DEFAULT_TITLE = '每日小清單';
 // Bump APP_SCHEMA whenever the saved data gains something an older copy of the app would drop when it re-saves.
 // A copy that meets data from a newer schema only reads it: it never writes it back, locally or to the cloud.
-const APP_SCHEMA = 3;
+const APP_SCHEMA = 4;
 let tooNew = false;
 const blank = () => ({ v: 2, schema: APP_SCHEMA, title: '', dayStart: 4, products: [], days: {}, skinTags: [...DEFAULT_SKIN], lastBackup: 0, backupSnooze: 0,
   cats: DEFAULT_CATS.map(c => ({ ...c, steps: [...c.steps] })), slots: DEFAULT_SLOTS.map(x => ({ ...x })),
@@ -1597,7 +1609,9 @@ const lookOf = id => LOOKS[slotOf(id).look] || LOOKS.usagi;
 const slotName = id => slotOf(id).name;
 const slotIcon = id => lookOf(id).icon;
 const slotImg = id => IMG[slotOf(id).look] || IMG.usagi;
-const fitCls = src => src === IMG.usagi ? ' class="fit"' : '';
+// Pictures cropped to the face already; the others get zoomed in by .avatar.
+const isFit = src => /(^|\/)(usagi\.jpg|av-[^/]+)$/.test(src);
+const fitCls = src => isFit(src) ? ' class="fit"' : '';
 const tone = id => 'tone-' + lookOf(id).tone;
 // The keys of a day record that hold a routine (skin is a list, note a string).
 const recSlots = r => r ? Object.keys(r).filter(k => r[k] && typeof r[k] === 'object' && !Array.isArray(r[k])) : [];
@@ -2426,7 +2440,7 @@ function toast(img, text, action) {
   const t = $('#toast');
   $('.toast-av', t).classList.toggle('duo', img === 'duo');
   $('img', t).src = IMG[img] || img;
-  $('img', t).classList.toggle('fit', $('img', t).src.endsWith(IMG.usagi));
+  $('img', t).classList.toggle('fit', isFit($('img', t).src));
   $('.toast-text', t).textContent = text;
   toastAction = action ? action.fn : null;
   $('#toastAct').hidden = !action;
