@@ -512,6 +512,9 @@ main{container:main / inline-size;min-width:0}
 .tag-add{display:flex;align-items:center;gap:8px;margin-bottom:22px}
 .tag-add .input{border-style:dashed}
 .colors button{width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 3px #fff, 0 0 0 1.5px var(--line);transition:box-shadow .2s, transform .15s}
+.icon-picks{display:flex;flex-wrap:wrap;gap:8px}
+.icon-picks button{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--soft);color:var(--ink-3);transition:background .2s, color .2s}
+.icon-picks button.on{background:var(--c1);color:var(--c6);box-shadow:0 0 0 2px var(--c3)}
 .colors button:disabled{display:grid;place-items:center;cursor:default}
 .colors button:disabled .avatar{width:24px;height:24px;box-shadow:none}
 .colors button.on{box-shadow:inset 0 0 0 3px #fff, 0 0 0 2px var(--ink-3);transform:scale(1.06)}
@@ -744,6 +747,10 @@ main{container:main / inline-size;min-width:0}
       <div class="lbl">顏色</div>
       <div class="colors" id="sColors"></div>
     </div>
+    <div class="field">
+      <div class="lbl">圖示</div>
+      <div class="icon-picks" id="sIcons"></div>
+    </div>
     <div class="field" id="sSwapWrap">
       <div class="lbl">交換角色</div>
       <div class="chips" id="sSwap"></div>
@@ -892,7 +899,7 @@ const DEFAULT_CATS = [
   { id: 'supp', name: '保健食品', color: 'butter', steps: ['維他命', '益生菌', '魚油', '其他'] },
   { id: 'eye', name: '眼睛', color: 'blue', steps: ['眼藥水', '熱敷', '其他'] },
 ];
-const DEFAULT_SLOTS = [{ id: 'am', name: '早上', min: 7 * 60, look: 'usagi', color: 'butter' }, { id: 'pm', name: '晚上', min: 23 * 60, look: 'chii', color: 'pink' }];
+const DEFAULT_SLOTS = [{ id: 'am', name: '早上', min: 7 * 60, look: 'usagi', color: 'butter', icon: 'sun' }, { id: 'pm', name: '晚上', min: 23 * 60, look: 'chii', color: 'pink', icon: 'moon' }];
 // Name keywords used to pre-pick a step (and with it the category) for a new item (first match wins).
 const STEP_HINTS = [['眼藥水', /眼藥|點眼|淚液/], ['熱敷', /熱敷|蒸氣眼罩/], ['維他命', /維他命|維生素|維c|維 c|vit/i],
   ['益生菌', /益生菌|乳酸菌/], ['魚油', /魚油|omega/i], ['卸妝', /卸/], ['洗臉', /洗|潔顏|潔面|泡沫/], ['化妝水', /化妝水|化粧水|爽膚水|精華水|toner/i], ['眼霜', /眼/],
@@ -923,6 +930,11 @@ const LOOKS = {
   shifu: { name: '師父', tone: 'butter' }, beetle: { name: '小甲蟲', tone: 'peach' },
   goblin: { name: '哥布林', tone: 'mint' }, ode: { name: '奧德', tone: 'butter' },
 };
+// Each routine has its own icon. It's guessed from the name (people keep different hours, so never from the time)
+// and can be changed in the routine sheet.
+const SLOT_ICONS = ['sun', 'noon', 'moon', 'bed', 'star', 'heart'];
+const iconFromName = name => /起床/.test(name) ? 'sun' : /睡|床|寢|眠/.test(name) ? 'bed' : /晚|夜/.test(name) ? 'moon'
+  : /午/.test(name) ? 'noon' : /早|晨/.test(name) ? 'sun' : 'star';
 // The character's own color if nobody else has it, else the first free one.
 const freeTone = (look, taken) => [LOOKS[look] && LOOKS[look].tone, ...Object.keys(COLORS)].find(k => k && !taken.includes(k)) || LOOKS[look]?.tone || 'blue';
 const DAY_STARTS = [0, 1, 2, 3, 4, 5, 6];
@@ -993,7 +1005,7 @@ const longDate = s => { const d = parse(s); return `${d.getMonth() + 1}月${d.ge
 const DEFAULT_TITLE = '每日小清單';
 // Bump APP_SCHEMA whenever the saved data gains something an older copy of the app would drop when it re-saves.
 // A copy that meets data from a newer schema only reads it: it never writes it back, locally or to the cloud.
-const APP_SCHEMA = 5;
+const APP_SCHEMA = 6;
 let tooNew = false;
 const blank = () => ({ v: 2, schema: APP_SCHEMA, title: '', dayStart: 4, products: [], days: {}, skinTags: [...DEFAULT_SKIN], lastBackup: 0, backupSnooze: 0,
   cats: DEFAULT_CATS.map(c => ({ ...c, steps: [...c.steps] })), slots: DEFAULT_SLOTS.map(x => ({ ...x })),
@@ -1017,6 +1029,7 @@ function normalize(s) {
       // Before routines had a character, the look came from the hour.
       const h = Math.floor(min / 60), look = LOOKS[x.look] ? x.look : h >= 21 || h < 4 ? 'hachi' : h >= 16 ? 'chii' : 'usagi';
       return { id: String(x.id), name: String(x.name).trim(), min: Math.min(1439, Math.max(0, min)), look, color: COLORS[x.color] ? x.color : '',
+        icon: SLOT_ICONS.includes(x.icon) ? x.icon : iconFromName(String(x.name).trim()),
         ...(isDate(x.from) ? { from: x.from } : {}), ...(x.deleted ? { deleted: true } : {}) };
     });
     // Before routines had their own color it came with the character, so two of them could look alike.
@@ -1621,17 +1634,9 @@ const fmtTime = m => `${Math.floor(m / 60)}:${pad(m % 60)}`;
 const activeSlots = () => state.slots.filter(x => !x.deleted).sort(byHour);
 // A routine added today doesn't reach back into days already lived.
 const slotLive = (id, date) => { const x = slotOf(id); return !x.deleted && (!x.from || date >= x.from); };
-const slotOf = id => state.slots.find(x => x.id === id) || { id, name: '', min: 0, look: 'usagi', color: 'butter' };
+const slotOf = id => state.slots.find(x => x.id === id) || { id, name: '', min: 0, look: 'usagi', color: 'butter', icon: 'star' };
 const slotName = id => slotOf(id).name;
-// The icon tells the time of day: morning, afternoon, evening (17:00 until 4:00).
-const timeIcon = min => min >= 4 * 60 && min < 11 * 60 ? 'sun' : min >= 4 * 60 && min < 17 * 60 ? 'noon' : 'moon';
-// With more than one evening routine, the last one is the one right before sleep, so it gets the bed.
-function slotIcon(id) {
-  const icon = timeIcon(slotOf(id).min);
-  if (icon !== 'moon') return icon;
-  const night = activeSlots().filter(y => timeIcon(y.min) === 'moon');
-  return night.length > 1 && night[night.length - 1].id === id ? 'bed' : 'moon';
-}
+const slotIcon = id => slotOf(id).icon || iconFromName(slotOf(id).name);
 const slotImg = id => IMG[slotOf(id).look] || IMG.usagi;
 // Pictures cropped to the face already; the others get zoomed in by .avatar.
 const isFit = src => /(^|\/)(usagi\.jpg|av-[^/]+)$/.test(src);
@@ -2249,6 +2254,11 @@ const SYNC_ERR = {
   exists: '這個名稱已經有了，如果是你的，請用「從雲端載入」', taken: '這個名稱已經有人用了，換一個吧',
   nomatch: '名稱或密碼不對', old: '這份紀錄是用比較新的版本存的，請先更新 App（重新整理）再試',
 };
+$('#sName').addEventListener('input', e => {
+  if (!slotDraft || !slotDraft.iconAuto) return;
+  const k = iconFromName(e.target.value.trim());
+  if (k !== slotDraft.icon) { slotDraft.icon = k; renderSlotSheet(); }
+});
 $('#syncPin').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4); });
 $('#syncForm').addEventListener('input', () => { $('#syncErr').textContent = ''; });
 $('#syncForm').addEventListener('submit', async e => {
@@ -2830,8 +2840,9 @@ let slotDraft = null;
 function openSlot(id) {
   const x = id && state.slots.find(y => y.id === id);
   const used = activeSlots().map(y => y.look), look = Object.keys(LOOKS).find(k => !used.includes(k)) || 'usagi';
-  slotDraft = x ? { ...x, orig: x.look, origColor: x.color, swapWith: null }
-    : { id: null, name: '', min: 12 * 60, look, color: freeTone(look, otherTones(null)) };
+  // The icon follows the name while typing, until it's picked by hand.
+  slotDraft = x ? { ...x, orig: x.look, origColor: x.color, swapWith: null, iconAuto: x.icon === iconFromName(x.name) }
+    : { id: null, name: '', min: 12 * 60, look, color: freeTone(look, otherTones(null)), icon: 'star', iconAuto: true };
   $('#sTitle').textContent = x ? '編輯時段' : '新增時段';
   $('#sName').value = slotDraft.name;
   $('#sTime').value = `${pad(Math.floor(slotDraft.min / 60))}:${pad(slotDraft.min % 60)}`;
@@ -2861,6 +2872,8 @@ function pickLook(look) {
 function renderSlotSheet() {
   $('#sLooks').innerHTML = Object.entries(LOOKS).map(([k, l]) => `<button type="button" class="look tone-${slotDraft.color}${slotDraft.look === k ? ' on' : ''}" data-act="s-look" data-v="${k}" aria-pressed="${slotDraft.look === k}">
     <span class="avatar"><img src="${IMG[k]}"${fitCls(IMG[k])} alt=""></span><span>${l.name}</span></button>`).join('');
+  $('#sIcons').className = `icon-picks tone-${slotDraft.color}`;
+  $('#sIcons').innerHTML = SLOT_ICONS.map(k => `<button type="button" class="${slotDraft.icon === k ? 'on' : ''}" data-act="s-icon" data-v="${k}" aria-pressed="${slotDraft.icon === k}">${icon(k)}</button>`).join('');
   // A color another routine has shows that routine's character and can't be picked (swapping trades colors too).
   const owner = k => !slotDraft.swapWith && activeSlots().find(y => y.id !== slotDraft.id && y.color === k);
   $('#sColors').innerHTML = Object.entries(COLORS).map(([k, c]) => {
@@ -2882,6 +2895,11 @@ function swapWith(id) {
   else { slotDraft.swapWith = id; slotDraft.look = y.look; slotDraft.color = y.color; }
   renderSlotSheet();
 }
+function pickSlotIcon(k) {
+  slotDraft.icon = k;
+  slotDraft.iconAuto = false;
+  renderSlotSheet();
+}
 function pickSlotColor(color) {
   if (slotDraft.swapWith || otherTones(slotDraft.id).includes(color)) return;
   slotDraft.color = color;
@@ -2892,7 +2910,7 @@ function saveSlot() {
   if (!name) { shake($('#sName')); $('#sName').focus(); return; }
   if (activeSlots().some(y => y.name === name && y.id !== slotDraft.id)) { shake($('#sName')); return; }
   const [h, m] = ($('#sTime').value || '12:00').split(':').map(Number);
-  const fields = { name, min: (h || 0) * 60 + (m || 0), look: slotDraft.look, color: slotDraft.color };
+  const fields = { name, min: (h || 0) * 60 + (m || 0), look: slotDraft.look, color: slotDraft.color, icon: slotDraft.icon };
   const partner = slotDraft.swapWith && state.slots.find(y => y.id === slotDraft.swapWith);
   if (partner) { partner.look = slotDraft.orig; partner.color = slotDraft.origColor; }
   const x = slotDraft.id && state.slots.find(y => y.id === slotDraft.id);
@@ -3120,6 +3138,7 @@ document.addEventListener('click', e => {
     case 'new-slot': openSlot(); break;
     case 's-look': pickLook(v); break;
     case 's-color': pickSlotColor(v); break;
+    case 's-icon': pickSlotIcon(v); break;
     case 's-swap': swapWith(id); break;
     case 's-delete': deleteSlot(); break;
     case 'edit-cat': openCat(id); break;
