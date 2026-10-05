@@ -48,9 +48,10 @@ img{display:block}
 .tone-blue{--c1:var(--blue-100);--c2:var(--blue-200);--c3:var(--blue-300);--c4:var(--blue-400);--c6:var(--blue-600);--tint:var(--blue-50)}
 .tone-pink{--c1:var(--pink-100);--c2:var(--pink-200);--c3:var(--pink-300);--c4:var(--pink-400);--c6:var(--pink-600);--tint:var(--pink-50)}
 .tone-butter{--c1:#FCF1D2;--c2:#F8E4AE;--c3:#F4D88F;--c4:#E5BC5C;--c6:#A97F1F;--tint:#FEF9EC}
-.tone-mint{--c1:#E2F2E5;--c2:#CBE8D1;--c3:#A9D8B4;--c4:#7FC18F;--c6:#3F8A52;--tint:#F3FAF4}
 .tone-mint{--c1:#DFF3EA;--c2:#C6E9D9;--c3:#A9DCC5;--c4:#78C2A2;--c6:#3E8C6A;--tint:#F2FAF6}
 .tone-lilac{--c1:#EEE9FB;--c2:#DDD3F6;--c3:#C9BAF0;--c4:#A994E3;--c6:#6E57B5;--tint:#F7F4FD}
+.tone-teal{--c1:#DDF2F4;--c2:#BEE5E9;--c3:#95D3DA;--c4:#5EB7C1;--c6:#2F7F89;--tint:#F0FAFB}
+.tone-peach{--c1:#FDEBDF;--c2:#FBD9C3;--c3:#F9C6A6;--c4:#EFA57A;--c6:#B8693B;--tint:#FEF6F0}
 
 /* ---------- layout ---------- */
 .app{max-width:1220px;margin:0 auto;padding:max(14px, env(safe-area-inset-top)) 16px calc(104px + env(safe-area-inset-bottom))}
@@ -511,6 +512,8 @@ main{container:main / inline-size;min-width:0}
 .tag-add{display:flex;align-items:center;gap:8px;margin-bottom:22px}
 .tag-add .input{border-style:dashed}
 .colors button{width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 3px #fff, 0 0 0 1.5px var(--line);transition:box-shadow .2s, transform .15s}
+.colors button:disabled{display:grid;place-items:center;cursor:default}
+.colors button:disabled .avatar{width:24px;height:24px;box-shadow:none}
 .colors button.on{box-shadow:inset 0 0 0 3px #fff, 0 0 0 2px var(--ink-3);transform:scale(1.06)}
 .switch-row{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:16px;background:#FAFBFD;font-size:15.5px;color:var(--ink-2);margin-bottom:20px}
 .switch{width:46px;height:28px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
@@ -737,6 +740,10 @@ main{container:main / inline-size;min-width:0}
       <div class="lbl">角色</div>
       <div class="looks" id="sLooks"></div>
     </div>
+    <div class="field">
+      <div class="lbl">顏色</div>
+      <div class="colors" id="sColors"></div>
+    </div>
     <div class="field" id="sSwapWrap">
       <div class="lbl">交換角色</div>
       <div class="chips" id="sSwap"></div>
@@ -885,12 +892,12 @@ const DEFAULT_CATS = [
   { id: 'supp', name: '保健食品', color: 'butter', steps: ['維他命', '益生菌', '魚油', '其他'] },
   { id: 'eye', name: '眼睛', color: 'blue', steps: ['眼藥水', '熱敷', '其他'] },
 ];
-const DEFAULT_SLOTS = [{ id: 'am', name: '早上', min: 7 * 60, look: 'usagi' }, { id: 'pm', name: '晚上', min: 23 * 60, look: 'chii' }];
+const DEFAULT_SLOTS = [{ id: 'am', name: '早上', min: 7 * 60, look: 'usagi', color: 'butter' }, { id: 'pm', name: '晚上', min: 23 * 60, look: 'chii', color: 'pink' }];
 // Name keywords used to pre-pick a step (and with it the category) for a new item (first match wins).
 const STEP_HINTS = [['眼藥水', /眼藥|點眼|淚液/], ['熱敷', /熱敷|蒸氣眼罩/], ['維他命', /維他命|維生素|維c|維 c|vit/i],
   ['益生菌', /益生菌|乳酸菌/], ['魚油', /魚油|omega/i], ['卸妝', /卸/], ['洗臉', /洗|潔顏|潔面|泡沫/], ['化妝水', /化妝水|化粧水|爽膚水|精華水|toner/i], ['眼霜', /眼/],
   ['防曬', /防曬|spf|隔離/i], ['面膜', /面膜|凍膜|mask/i], ['精華', /精華|安瓶|原液|serum/i], ['乳液', /乳液|lotion|emulsion/i], ['面霜', /霜|cream/i]];
-const COLORS = { pink: '#F7B9CA', blue: '#9FC9EE', butter: '#F4D88F', mint: '#A9DCC5', lilac: '#C9BAF0', peach: '#F9C6A6' };
+const COLORS = { pink: '#F7B9CA', blue: '#9FC9EE', teal: '#95D3DA', butter: '#F4D88F', mint: '#A9DCC5', lilac: '#C9BAF0', peach: '#F9C6A6' };
 const WD = ['日', '一', '二', '三', '四', '五', '六'];
 const WEEK = [1, 2, 3, 4, 5, 6, 0];
 const DEFAULT_SKIN = ['穩定', '乾燥', '出油', '敏感'];
@@ -906,15 +913,18 @@ const IMG = {
   beetle: 'images/av-beetle.jpg', goblin: 'images/av-goblin.jpg', ode: 'images/av-ode.jpg',
 };
 // Each routine picks a character; its color and icon come with it.
-// New characters share the color (and icon) of the one they look most like.
+// Each routine picks a character for its picture. Its color is the routine's own (one of COLORS, no two routines alike);
+// tone is just the color a character suggests when it's picked.
 const LOOKS = {
-  usagi: { name: '烏薩奇', tone: 'butter', icon: 'sun' }, chii: { name: '吉伊', tone: 'pink', icon: 'moon' }, hachi: { name: '小八', tone: 'blue', icon: 'bed' },
-  chiiFrown: { name: '皺眉吉伊', tone: 'pink', icon: 'moon' }, chiiCry: { name: '哭哭吉伊', tone: 'pink', icon: 'moon' },
-  hachiFlower: { name: '花花小八', tone: 'blue', icon: 'bed' }, momo: { name: '小桃', tone: 'pink', icon: 'moon' },
-  shisa: { name: '獅薩', tone: 'butter', icon: 'sun' }, shisaSnack: { name: '點心獅薩', tone: 'butter', icon: 'sun' },
-  shifu: { name: '師父', tone: 'butter', icon: 'sun' }, beetle: { name: '小甲蟲', tone: 'butter', icon: 'sun' },
-  goblin: { name: '哥布林', tone: 'mint', icon: 'noon' }, ode: { name: '奧德', tone: 'butter', icon: 'sun' },
+  usagi: { name: '烏薩奇', tone: 'butter' }, chii: { name: '吉伊', tone: 'pink' }, hachi: { name: '小八', tone: 'blue' },
+  chiiFrown: { name: '皺眉吉伊', tone: 'pink' }, chiiCry: { name: '哭哭吉伊', tone: 'pink' },
+  hachiFlower: { name: '花花小八', tone: 'blue' }, momo: { name: '小桃', tone: 'pink' },
+  shisa: { name: '獅薩', tone: 'peach' }, shisaSnack: { name: '點心獅薩', tone: 'peach' },
+  shifu: { name: '師父', tone: 'butter' }, beetle: { name: '小甲蟲', tone: 'peach' },
+  goblin: { name: '哥布林', tone: 'mint' }, ode: { name: '奧德', tone: 'butter' },
 };
+// The character's own color if nobody else has it, else the first free one.
+const freeTone = (look, taken) => [LOOKS[look] && LOOKS[look].tone, ...Object.keys(COLORS)].find(k => k && !taken.includes(k)) || LOOKS[look]?.tone || 'blue';
 const DAY_STARTS = [0, 1, 2, 3, 4, 5, 6];
 const TABS = [['today', '今天', 'star'], ['week', '一週', 'week'], ['products', '清單', 'bottle'], ['history', '紀錄', 'book'], ['settings', '設定', 'gear']];
 
@@ -983,7 +993,7 @@ const longDate = s => { const d = parse(s); return `${d.getMonth() + 1}月${d.ge
 const DEFAULT_TITLE = '每日小清單';
 // Bump APP_SCHEMA whenever the saved data gains something an older copy of the app would drop when it re-saves.
 // A copy that meets data from a newer schema only reads it: it never writes it back, locally or to the cloud.
-const APP_SCHEMA = 4;
+const APP_SCHEMA = 5;
 let tooNew = false;
 const blank = () => ({ v: 2, schema: APP_SCHEMA, title: '', dayStart: 4, products: [], days: {}, skinTags: [...DEFAULT_SKIN], lastBackup: 0, backupSnooze: 0,
   cats: DEFAULT_CATS.map(c => ({ ...c, steps: [...c.steps] })), slots: DEFAULT_SLOTS.map(x => ({ ...x })),
@@ -1006,9 +1016,16 @@ function normalize(s) {
       const min = Number.isFinite(Number(x.min)) ? Math.round(Number(x.min)) : (Number(x.hour) || 0) * 60;
       // Before routines had a character, the look came from the hour.
       const h = Math.floor(min / 60), look = LOOKS[x.look] ? x.look : h >= 21 || h < 4 ? 'hachi' : h >= 16 ? 'chii' : 'usagi';
-      return { id: String(x.id), name: String(x.name).trim(), min: Math.min(1439, Math.max(0, min)), look,
+      return { id: String(x.id), name: String(x.name).trim(), min: Math.min(1439, Math.max(0, min)), look, color: COLORS[x.color] ? x.color : '',
         ...(isDate(x.from) ? { from: x.from } : {}), ...(x.deleted ? { deleted: true } : {}) };
     });
+    // Before routines had their own color it came with the character, so two of them could look alike.
+    const taken = [];
+    for (const x of out.slots.filter(y => !y.deleted)) {
+      if (!x.color || taken.includes(x.color)) x.color = freeTone(x.look, taken);
+      taken.push(x.color);
+    }
+    for (const x of out.slots) if (!x.color) x.color = freeTone(x.look, []);
   }
   if (Array.isArray(s.cats) && s.cats.length) {
     out.cats = s.cats.filter(c => c && c.id && String(c.name || '').trim()).map(c => ({
@@ -1604,15 +1621,22 @@ const fmtTime = m => `${Math.floor(m / 60)}:${pad(m % 60)}`;
 const activeSlots = () => state.slots.filter(x => !x.deleted).sort(byHour);
 // A routine added today doesn't reach back into days already lived.
 const slotLive = (id, date) => { const x = slotOf(id); return !x.deleted && (!x.from || date >= x.from); };
-const slotOf = id => state.slots.find(x => x.id === id) || { id, name: '', min: 0, look: 'usagi' };
-const lookOf = id => LOOKS[slotOf(id).look] || LOOKS.usagi;
+const slotOf = id => state.slots.find(x => x.id === id) || { id, name: '', min: 0, look: 'usagi', color: 'butter' };
 const slotName = id => slotOf(id).name;
-const slotIcon = id => lookOf(id).icon;
+// The icon tells the time of day: morning, afternoon, evening (17:00 until 4:00).
+const timeIcon = min => min >= 4 * 60 && min < 11 * 60 ? 'sun' : min >= 4 * 60 && min < 17 * 60 ? 'noon' : 'moon';
+// With more than one evening routine, the last one is the one right before sleep, so it gets the bed.
+function slotIcon(id) {
+  const icon = timeIcon(slotOf(id).min);
+  if (icon !== 'moon') return icon;
+  const night = activeSlots().filter(y => timeIcon(y.min) === 'moon');
+  return night.length > 1 && night[night.length - 1].id === id ? 'bed' : 'moon';
+}
 const slotImg = id => IMG[slotOf(id).look] || IMG.usagi;
 // Pictures cropped to the face already; the others get zoomed in by .avatar.
 const isFit = src => /(^|\/)(usagi\.jpg|av-[^/]+)$/.test(src);
 const fitCls = src => isFit(src) ? ' class="fit"' : '';
-const tone = id => 'tone-' + lookOf(id).tone;
+const tone = id => 'tone-' + (slotOf(id).color || LOOKS[slotOf(id).look]?.tone || 'butter');
 // The keys of a day record that hold a routine (skin is a list, note a string).
 const recSlots = r => r ? Object.keys(r).filter(k => r[k] && typeof r[k] === 'object' && !Array.isArray(r[k])) : [];
 const hasMarks = x => !!x && ['done', 'skip', 'extra'].some(k => (x[k] || []).length > 0);
@@ -2805,8 +2829,9 @@ function addStarter() {
 let slotDraft = null;
 function openSlot(id) {
   const x = id && state.slots.find(y => y.id === id);
-  const used = activeSlots().map(y => y.look);
-  slotDraft = x ? { ...x, orig: x.look, swapWith: null } : { id: null, name: '', min: 12 * 60, look: Object.keys(LOOKS).find(k => !used.includes(k)) || 'usagi' };
+  const used = activeSlots().map(y => y.look), look = Object.keys(LOOKS).find(k => !used.includes(k)) || 'usagi';
+  slotDraft = x ? { ...x, orig: x.look, origColor: x.color, swapWith: null }
+    : { id: null, name: '', min: 12 * 60, look, color: freeTone(look, otherTones(null)) };
   $('#sTitle').textContent = x ? '編輯時段' : '新增時段';
   $('#sName').value = slotDraft.name;
   $('#sTime').value = `${pad(Math.floor(slotDraft.min / 60))}:${pad(slotDraft.min % 60)}`;
@@ -2815,11 +2840,18 @@ function openSlot(id) {
   if (!$('#slotDlg').open) $('#slotDlg').showModal();
   if (!x && matchMedia('(hover:hover)').matches) $('#sName').focus();
 }
+const otherTones = id => activeSlots().filter(y => y.id !== id).map(y => y.color);
 // Picking a character another routine already wears switches the sheet to that routine.
+// Otherwise the character brings its own color along, when no other routine has it.
 function pickLook(look) {
-  if (slotDraft.swapWith) { slotDraft.swapWith = null; slotDraft.look = slotDraft.orig; }
+  if (slotDraft.swapWith) { slotDraft.swapWith = null; slotDraft.look = slotDraft.orig; slotDraft.color = slotDraft.origColor; }
   const other = slotDraft.id && activeSlots().find(y => y.look === look && y.id !== slotDraft.id);
-  if (!other) { slotDraft.look = look; renderSlotSheet(); return; }
+  if (!other) {
+    slotDraft.look = look;
+    if (!otherTones(slotDraft.id).includes(LOOKS[look].tone)) slotDraft.color = LOOKS[look].tone;
+    renderSlotSheet();
+    return;
+  }
   openSlot(other.id);
   const f = $('#slotForm');
   f.classList.remove('swap');
@@ -2827,20 +2859,32 @@ function pickLook(look) {
   f.classList.add('swap');
 }
 function renderSlotSheet() {
-  $('#sLooks').innerHTML = Object.entries(LOOKS).map(([k, l]) => `<button type="button" class="look tone-${l.tone}${slotDraft.look === k ? ' on' : ''}" data-act="s-look" data-v="${k}" aria-pressed="${slotDraft.look === k}">
+  $('#sLooks').innerHTML = Object.entries(LOOKS).map(([k, l]) => `<button type="button" class="look tone-${slotDraft.color}${slotDraft.look === k ? ' on' : ''}" data-act="s-look" data-v="${k}" aria-pressed="${slotDraft.look === k}">
     <span class="avatar"><img src="${IMG[k]}"${fitCls(IMG[k])} alt=""></span><span>${l.name}</span></button>`).join('');
+  // A color another routine has shows that routine's character and can't be picked (swapping trades colors too).
+  const owner = k => !slotDraft.swapWith && activeSlots().find(y => y.id !== slotDraft.id && y.color === k);
+  $('#sColors').innerHTML = Object.entries(COLORS).map(([k, c]) => {
+    const y = owner(k);
+    return `<button type="button" class="${slotDraft.color === k ? 'on' : ''}" style="background:${c}" data-act="s-color" data-v="${k}" aria-label="${k}"${y ? ` disabled><span class="avatar"><img src="${slotImg(y.id)}"${fitCls(slotImg(y.id))} alt=""></span>` : '>'}</button>`;
+  }).join('');
   // Swapping: each chip shows the other routine with the character it would end up with.
   const others = slotDraft.id ? activeSlots().filter(y => y.id !== slotDraft.id && y.look !== slotDraft.orig) : [];
   $('#sSwapWrap').hidden = !others.length;
   $('#sSwap').innerHTML = others.map(y => {
-    const on = slotDraft.swapWith === y.id, look = on ? slotDraft.orig : y.look;
-    return `<button type="button" class="chip swap-chip tone-${LOOKS[look].tone}${on ? ' on' : ''}" data-act="s-swap" data-id="${y.id}" aria-pressed="${on}">
+    const on = slotDraft.swapWith === y.id, look = on ? slotDraft.orig : y.look, color = on ? slotDraft.origColor : y.color;
+    return `<button type="button" class="chip swap-chip tone-${color}${on ? ' on' : ''}" data-act="s-swap" data-id="${y.id}" aria-pressed="${on}">
       <img src="${IMG[look]}"${fitCls(IMG[look])} alt="">和${esc(y.name)}交換</button>`;
   }).join('');
 }
 function swapWith(id) {
-  if (slotDraft.swapWith === id) { slotDraft.swapWith = null; slotDraft.look = slotDraft.orig; }
-  else { slotDraft.swapWith = id; slotDraft.look = state.slots.find(y => y.id === id).look; }
+  const y = state.slots.find(z => z.id === id);
+  if (slotDraft.swapWith === id) { slotDraft.swapWith = null; slotDraft.look = slotDraft.orig; slotDraft.color = slotDraft.origColor; }
+  else { slotDraft.swapWith = id; slotDraft.look = y.look; slotDraft.color = y.color; }
+  renderSlotSheet();
+}
+function pickSlotColor(color) {
+  if (slotDraft.swapWith || otherTones(slotDraft.id).includes(color)) return;
+  slotDraft.color = color;
   renderSlotSheet();
 }
 function saveSlot() {
@@ -2848,9 +2892,9 @@ function saveSlot() {
   if (!name) { shake($('#sName')); $('#sName').focus(); return; }
   if (activeSlots().some(y => y.name === name && y.id !== slotDraft.id)) { shake($('#sName')); return; }
   const [h, m] = ($('#sTime').value || '12:00').split(':').map(Number);
-  const fields = { name, min: (h || 0) * 60 + (m || 0), look: slotDraft.look };
+  const fields = { name, min: (h || 0) * 60 + (m || 0), look: slotDraft.look, color: slotDraft.color };
   const partner = slotDraft.swapWith && state.slots.find(y => y.id === slotDraft.swapWith);
-  if (partner) partner.look = slotDraft.orig;
+  if (partner) { partner.look = slotDraft.orig; partner.color = slotDraft.origColor; }
   const x = slotDraft.id && state.slots.find(y => y.id === slotDraft.id);
   // A new routine starts today, so days already lived don't grow an unticked card.
   if (x) Object.assign(x, fields); else state.slots.push({ id: 's' + uid(), ...fields, from: today() });
@@ -3075,6 +3119,7 @@ document.addEventListener('click', e => {
     case 'edit-slot': openSlot(id); break;
     case 'new-slot': openSlot(); break;
     case 's-look': pickLook(v); break;
+    case 's-color': pickSlotColor(v); break;
     case 's-swap': swapWith(id); break;
     case 's-delete': deleteSlot(); break;
     case 'edit-cat': openCat(id); break;
